@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-
 from pretix.helpers.http import redirect_to_url
 from pretix.presale.checkoutflow import TemplateFlowStep
 from pretix.presale.views import CartMixin
@@ -11,20 +10,24 @@ from .utils import build_seatingframe_url
 
 class SeatingPlanCheckoutStep(CartMixin, TemplateFlowStep):
     priority = 44
-    identifier = 'quse_seatingplan'
-    template_name = 'quse_seatingplan/checkout_seating.html'
-    label = _('Choose seats')
-    icon = 'chair'
+    identifier = "quse_seatingplan"
+    template_name = "quse_seatingplan/checkout_seating.html"
+    label = _("Choose seats")
+    icon = "chair"
 
     @cached_property
     def seat_product_ids(self):
         return set(
-            self.event.seat_category_mappings.filter(subevent=None).values_list('product_id', flat=True)
+            self.event.seat_category_mappings.filter(subevent=None).values_list(
+                "product_id", flat=True
+            )
         )
 
     def is_applicable(self, request):
         self.request = request
-        if not request.event.settings.get('quse_seatingplan_checkout_enabled', as_type=bool):
+        if not request.event.settings.get(
+            "quse_seatingplan_checkout_enabled", as_type=bool
+        ):
             return False
         if not request.event.seating_plan:
             return False
@@ -40,14 +43,17 @@ class SeatingPlanCheckoutStep(CartMixin, TemplateFlowStep):
         for pos in self._positions():
             if pos.item_id in self.seat_product_ids and not pos.seat:
                 if warn:
-                    messages.error(request, _('Please choose seats for every ticket before continuing.'))
+                    messages.error(
+                        request,
+                        _("Please choose seats for every ticket before continuing."),
+                    )
                 return False
         return True
 
     def get_context_data(self, **kwargs):
-        kwargs.setdefault('iframe_url', self._iframe_url())
+        kwargs.setdefault("iframe_url", self._iframe_url())
         ctx = super().get_context_data(**kwargs)
-        ctx['cart'] = self.get_cart()
+        ctx["cart"] = self.get_cart()
         return ctx
 
     def post(self, request):
@@ -61,8 +67,11 @@ class SeatingPlanCheckoutStep(CartMixin, TemplateFlowStep):
 
     def _iframe_url(self):
         cart_namespace = None
-        if self.request.resolver_match and 'cart_namespace' in self.request.resolver_match.kwargs:
-            cart_namespace = self.request.resolver_match.kwargs['cart_namespace']
+        if (
+            self.request.resolver_match
+            and "cart_namespace" in self.request.resolver_match.kwargs
+        ):
+            cart_namespace = self.request.resolver_match.kwargs["cart_namespace"]
         subevent = self._current_subevent()
         return build_seatingframe_url(
             event=self.request.event,
@@ -79,6 +88,6 @@ class SeatingPlanCheckoutStep(CartMixin, TemplateFlowStep):
         return None
 
     def _positions(self):
-        if not hasattr(self, '_quse_seatingplan_positions'):
+        if not hasattr(self, "_quse_seatingplan_positions"):
             self._quse_seatingplan_positions = list(self.positions)
         return self._quse_seatingplan_positions

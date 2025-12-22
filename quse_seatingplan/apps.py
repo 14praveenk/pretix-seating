@@ -16,13 +16,19 @@ class PluginApp(PluginConfig):
     class PretixPluginMeta:
         name = gettext_lazy("Seating Plan")
         author = "QUSE"
-        description = gettext_lazy("Upload seating plans and enable seat selection during checkout.")
+        description = gettext_lazy(
+            "Upload seating plans and enable seat selection during checkout."
+        )
         visible = True
         version = __version__
         category = "FEATURE"
         compatibility = "pretix>=2.7.0"
         settings_links = [
-            ((gettext_lazy("Settings"), gettext_lazy("Seating plan")), "plugins:quse_seatingplan:settings", {}),
+            (
+                (gettext_lazy("Settings"), gettext_lazy("Seating plan")),
+                "plugins:quse_seatingplan:settings",
+                {},
+            ),
         ]
         navigation_links = []
 
