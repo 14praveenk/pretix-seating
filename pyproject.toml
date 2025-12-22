@@ -1,0 +1,45 @@
+[project]
+name = "quse_seatingplan"
+dynamic = ["version"]
+description = "Seating plan plugin"
+readme = "README.rst"
+license = {text = "Apache"}
+keywords = ["pretix"]
+authors = [
+    {name = "QUSE", email = "hello@quse.link"},
+]
+maintainers = [
+    {name = "QUSE", email = "hello@quse.link"},
+]
+
+dependencies = [
+]
+
+[project.entry-points."pretix.plugin"]
+quse_seatingplan = "quse_seatingplan:PretixPluginMeta"
+
+[project.entry-points."distutils.commands"]
+build = "pretix_plugin_build.build:CustomBuild"
+
+[build-system]
+requires = [
+    "setuptools",
+    "pretix-plugin-build",
+]
+
+[project.urls]
+homepage = "GitHub repository URL"
+repository = "GitHub repository URL"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "quse_seatingplan.__version__"}
+
+[tool.setuptools.packages.find]
+include = [
+    "quse_seatingplan",
+    "quse_seatingplan.*",
+]
+namespaces = false

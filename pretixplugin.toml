@@ -1,0 +1,5 @@
+[plugin]
+package = "quse_seatingplan"
+modules = [ "quse_seatingplan" ]
+marketplace_name = "quse_seatingplan"
+
