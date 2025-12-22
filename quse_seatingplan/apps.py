@@ -1,6 +1,9 @@
 from django.utils.translation import gettext_lazy
 
-from . import __version__
+try:
+    from . import __version__ as _pkg_version
+except ImportError:
+    _pkg_version = "dev"
 
 try:
     from pretix.base.plugins import PluginConfig
@@ -20,7 +23,7 @@ class PluginApp(PluginConfig):
             "Upload seating plans and enable seat selection during checkout."
         )
         visible = True
-        version = __version__
+        version = _pkg_version
         category = "FEATURE"
         compatibility = "pretix>=2.7.0"
         settings_links = [
