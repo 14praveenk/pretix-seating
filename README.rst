@@ -48,7 +48,7 @@ License
 
 Copyright 2025 QUSE
 
-Released under the terms of the Apache License 2.0
+Released under the terms of the GNU Affero General Public License v3.0
 
 
 

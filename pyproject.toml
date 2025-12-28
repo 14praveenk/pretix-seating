@@ -3,7 +3,7 @@ name = "quse_seatingplan"
 dynamic = ["version"]
 description = "Seating plan plugin"
 readme = "README.rst"
-license = {text = "Apache"}
+license = {text = "GNU Affero General Public License v3.0"}
 keywords = ["pretix"]
 authors = [
     {name = "QUSE", email = "hello@quse.link"},
