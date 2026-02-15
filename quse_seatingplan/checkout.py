@@ -11,7 +11,7 @@ from .utils import build_seatingframe_url
 class SeatingPlanCheckoutStep(CartMixin, TemplateFlowStep):
     priority = 44
     identifier = "quse_seatingplan"
-    template_name = "quse_seatingplan/checkout_seating.html"
+    template_name = "pretixplugins/quse_seatingplan/checkout_seating.html"
     label = _("Choose seats")
     icon = "chair"
 

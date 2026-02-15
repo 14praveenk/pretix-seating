@@ -1,0 +1,30 @@
+{% load i18n static %}
+<link rel="stylesheet" href="{% static 'quse_seatingplan/seatingframe.css' %}">
+<div class="quse-seat-app" data-endpoint="{{ data_url }}" data-assign="{{ assign_url }}">
+    <div class="quse-seat-app__status" data-role="status" aria-live="polite"></div>
+    <div class="quse-seat-app__layout">
+        <section class="quse-seat-app__tickets" data-role="tickets">
+            <h3>{% trans "Tickets in your cart" %}</h3>
+            <p class="quse-seat-app__help">{% trans "Pick a ticket to highlight compatible seats, then click a seat in the map to reserve it." %}</p>
+            <ul class="quse-seat-app__ticket-list" data-role="ticket-list"></ul>
+        </section>
+        <section class="quse-seat-app__canvas" aria-live="polite">
+            <div class="quse-seat-app__map">
+                <canvas width="800" height="600" aria-label="{% trans 'Seating map' %}"></canvas>
+                <div class="quse-seat-app__canvas-tools" role="group" aria-label="{% trans 'Viewport tools' %}">
+                    <button type="button" class="quse-seat-app__tool" data-role="zoom-in" data-variant="icon" aria-label="{% trans 'Zoom in' %}">
+                        <span aria-hidden="true">+</span>
+                    </button>
+                    <button type="button" class="quse-seat-app__tool" data-role="zoom-out" data-variant="icon" aria-label="{% trans 'Zoom out' %}">
+                        <span aria-hidden="true">&minus;</span>
+                    </button>
+                    <button type="button" class="quse-seat-app__tool" data-role="reset-view">
+                        <span class="quse-seat-app__tool-label">{% trans "Reset" %}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="quse-seat-app__legend" data-role="legend"></div>
+        </section>
+    </div>
+</div>
+<script defer src="{% static 'quse_seatingplan/seatingframe.js' %}"></script>

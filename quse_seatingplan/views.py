@@ -19,7 +19,7 @@ from .forms import SeatingPlanSettingsForm
 class SeatingPlanSettingsView(EventSettingsViewMixin, EventSettingsFormView):
     model = Event
     form_class = SeatingPlanSettingsForm
-    template_name = "quse_seatingplan/settings.html"
+    template_name = "pretixplugins/quse_seatingplan/settings.html"
     permission = "can_change_settings"
     success_message = _("Seating plan configuration updated.")
 

@@ -75,7 +75,12 @@ def render_checkout_seating(sender, request=None, subevent=None, **kwargs):
         "assign_url": assign_url,
     }
     return render_to_string(
-        "quse_seatingplan/seatingframe.html", context, request=request
+        [
+            "pretixplugins/quse_seatingplan/seatingframe.html",
+            "quse_seatingplan/seatingframe.html",
+        ],
+        context,
+        request=request,
     )
 
 

@@ -30,6 +30,10 @@ def test_packaged_settings_template_exists():
         "templates/quse_seatingplan/settings.html"
     )
     assert template.is_file()
+    canonical_template = resources.files("quse_seatingplan").joinpath(
+        "templates/pretixplugins/quse_seatingplan/settings.html"
+    )
+    assert canonical_template.is_file()
 
 
 def test_build_seatingframe_url_includes_optional_kwargs(monkeypatch):
