@@ -325,14 +325,14 @@
                 const labelSize = Math.max(6, seatRadius * 1.1);
                 this.ctx.save();
                 this.ctx.font = '500 ' + labelSize.toFixed(1) + 'px "Helvetica Neue", Helvetica, Arial, sans-serif';
-                this.ctx.textAlign = 'right';
+                this.ctx.textAlign = 'left';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillStyle = '#51647c';
                 const gap = seatRadius + Math.max(4, seatRadius * 0.8);
                 rowMap.forEach((pos, label) => {
                     if (pos.x - gap < -30 || pos.x > targetWidth + 30 ||
                         pos.y < -20 || pos.y > canvasHeight + 20) return;
-                    this.ctx.fillText(label, pos.x - gap, pos.y);
+                    this.ctx.fillText(label, pos.x - gap - 4, pos.y);
                 });
                 this.ctx.restore();
             }
