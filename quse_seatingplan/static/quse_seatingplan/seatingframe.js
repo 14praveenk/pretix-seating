@@ -41,7 +41,7 @@
             this.pending = false;
             this.viewport = {
                 scale: 1,
-                minScale: 0.5,
+                minScale: 1,
                 maxScale: 8,
                 offset: { x: 0, y: 0 },
             };
@@ -312,27 +312,36 @@
                 this.ctx.stroke();
             });
 
-            // Draw small row labels at the leftmost seat of each row
-            const rowMap = new Map();
+            // Draw small row labels at the leftmost seat of each row.
+            // Group by label AND approximate y so that identically-labelled rows
+            // in different sections each get their own label.
+            const rowGroups = [];
+            const yTolerance = seatRadius * 3;
             this.seats.forEach((seat) => {
-                const rowKey = seat.row_label || seat.row_name;
-                if (!rowKey || !seat._screen) return;
-                if (!rowMap.has(rowKey) || seat._screen.x < rowMap.get(rowKey).x) {
-                    rowMap.set(rowKey, { x: seat._screen.x, y: seat._screen.y });
+                const label = seat.row_label || seat.row_name;
+                if (!label || !seat._screen) return;
+                // Find an existing group with the same label and close y
+                let group = rowGroups.find((g) => g.label === label && Math.abs(g.y - seat._screen.y) < yTolerance);
+                if (!group) {
+                    group = { label: label, x: seat._screen.x, y: seat._screen.y };
+                    rowGroups.push(group);
+                } else if (seat._screen.x < group.x) {
+                    group.x = seat._screen.x;
+                    group.y = seat._screen.y;
                 }
             });
-            if (rowMap.size) {
+            if (rowGroups.length) {
                 const labelSize = Math.max(6, seatRadius * 1.1);
                 this.ctx.save();
                 this.ctx.font = '500 ' + labelSize.toFixed(1) + 'px "Helvetica Neue", Helvetica, Arial, sans-serif';
-                this.ctx.textAlign = 'left';
+                this.ctx.textAlign = 'right';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillStyle = '#51647c';
                 const gap = seatRadius + Math.max(4, seatRadius * 0.8);
-                rowMap.forEach((pos, label) => {
-                    if (pos.x - gap < -30 || pos.x > targetWidth + 30 ||
-                        pos.y < -20 || pos.y > canvasHeight + 20) return;
-                    this.ctx.fillText(label, pos.x - gap - 4, pos.y);
+                rowGroups.forEach((row) => {
+                    if (row.x - gap < -50 || row.x > targetWidth + 50 ||
+                        row.y < -30 || row.y > canvasHeight + 30) return;
+                    this.ctx.fillText(row.label, row.x - gap, row.y);
                 });
                 this.ctx.restore();
             }
