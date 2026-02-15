@@ -8,7 +8,7 @@
     display: block;
     width: 100%;
     max-width: 100%;
-    height: clamp(560px, 72vh, 900px);
+    height: clamp(560px, 75vh, 950px);
     max-height: calc(100vh - 120px);
     border: none !important;
     outline: none;
@@ -20,11 +20,11 @@
 @media (max-width: 768px) {
     .quse-seating-checkout__frame {
         padding: 0;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .quse-seating-checkout__frame iframe {
-        height: calc(100vh - 140px);
+        height: calc(100vh - 100px);
         max-height: none;
         border-radius: 0;
         box-shadow: none;
@@ -33,6 +33,7 @@
 
 @media (max-width: 480px) {
     .quse-seating-checkout__frame iframe {
-        height: calc(100vh - 110px);
+        height: calc(100vh - 80px);
+        min-height: 420px;
     }
 }

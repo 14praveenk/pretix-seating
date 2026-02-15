@@ -41,10 +41,11 @@
             this.pending = false;
             this.viewport = {
                 scale: 1,
-                minScale: 0.6,
-                maxScale: 3,
+                minScale: 0.5,
+                maxScale: 8,
                 offset: { x: 0, y: 0 },
             };
+            this._preserveViewport = false;
             this.baseScale = 1;
             this.currentBounds = null;
             this.currentPadding = this.canvasPadding;
@@ -100,7 +101,10 @@
                     this.legend = payload.categories || [];
                     this.shapes = payload.shapes || [];
                     this.bounds = payload.meta ? payload.meta.bounds : null;
-                    this._resetViewport();
+                    if (!this._preserveViewport) {
+                        this._resetViewport();
+                    }
+                    this._preserveViewport = false;
                     this._ensureSelectedTicket();
                     this.renderTickets();
                     this.renderLegend();
@@ -223,6 +227,7 @@
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 return;
             }
+            const dpr = window.devicePixelRatio || 1;
             const padding = this.canvasPadding;
             const bounds = this.bounds || this._computeBounds();
             const width = Math.max((bounds.max_x - bounds.min_x) || 0, 1);
@@ -232,26 +237,63 @@
             const baseScale = Math.min(drawableWidth / width, drawableWidth / height);
             const scale = baseScale * this.viewport.scale;
             const canvasHeight = height * baseScale + padding * 2;
-            this.canvas.width = targetWidth;
-            this.canvas.height = canvasHeight;
+
+            // HiDPI: size canvas buffer at native resolution for crisp rendering
+            this.canvas.width = targetWidth * dpr;
+            this.canvas.height = canvasHeight * dpr;
+            this.canvas.style.height = canvasHeight + 'px';
+
             this.baseScale = baseScale;
             this.currentBounds = bounds;
             this.currentPadding = padding;
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Scale context so all drawing uses CSS-pixel coordinates
+            this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            this.ctx.clearRect(0, 0, targetWidth, canvasHeight);
+
             const offset = this.viewport.offset || { x: 0, y: 0 };
             this.shapes.forEach((shape) => this._drawShape(shape, bounds, scale, padding, offset));
+
+            // Scale seat radius with zoom for visual clarity
+            const seatRadius = Math.max(5, 8 * Math.pow(this.viewport.scale, 0.35));
+            const strokeBase = Math.max(1, 1.4 * Math.pow(this.viewport.scale, 0.25));
+
             this.seats.forEach((seat) => {
                 const coords = this._seatCoords(seat, bounds, scale, padding, offset);
                 seat._screen = coords;
-                const radius = 8;
+                seat._screenRadius = seatRadius;
+
+                // Cull seats outside visible area
+                if (coords.x < -seatRadius || coords.x > targetWidth + seatRadius ||
+                    coords.y < -seatRadius || coords.y > canvasHeight + seatRadius) {
+                    return;
+                }
+
                 this.ctx.beginPath();
-                this.ctx.arc(coords.x, coords.y, radius, 0, Math.PI * 2);
+                this.ctx.arc(coords.x, coords.y, seatRadius, 0, Math.PI * 2);
                 this.ctx.fillStyle = this._seatColor(seat);
                 this.ctx.fill();
-                this.ctx.lineWidth = seat.status === 'mine' ? 2 : 1;
+                this.ctx.lineWidth = seat.status === 'mine' ? strokeBase * 1.5 : strokeBase;
                 this.ctx.strokeStyle = seat.status === 'mine' ? '#0f489f' : 'rgba(8, 25, 58, 0.3)';
                 this.ctx.stroke();
             });
+
+            // Show seat labels when zoomed in enough
+            if (this.viewport.scale >= 2.5) {
+                const labelSize = Math.max(7, seatRadius * 0.75);
+                this.ctx.save();
+                this.ctx.font = '600 ' + labelSize.toFixed(1) + 'px "Helvetica Neue", Helvetica, Arial, sans-serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.seats.forEach((seat) => {
+                    if (!seat._screen || !seat.label) return;
+                    if (seat._screen.x < -20 || seat._screen.x > targetWidth + 20 ||
+                        seat._screen.y < -20 || seat._screen.y > canvasHeight + 20) return;
+                    this.ctx.fillStyle = (seat.status === 'mine' || seat.status === 'taken' || seat.status === 'blocked') ? '#fff' : '#0a1c3a';
+                    this.ctx.fillText(seat.label, seat._screen.x, seat._screen.y);
+                });
+                this.ctx.restore();
+            }
         }
 
         _seatCoords(seat, bounds, scale, padding, offset) {
@@ -728,11 +770,9 @@
             return this._isMobileViewport();
         }
 
-        _allowWheelGesture(event) {
-            if (event.ctrlKey || event.metaKey) {
-                return true;
-            }
-            return this._isMobileViewport();
+        _allowWheelGesture(_event) {
+            // Always allow wheel zoom since seating plan runs in its own iframe
+            return true;
         }
 
         _isMobileViewport() {
@@ -743,13 +783,14 @@
         }
 
         _seatAt(x, y) {
+            const hitRadius = Math.max(12, (this.seats[0] && this.seats[0]._screenRadius || 8) + 4);
             for (const seat of this.seats) {
                 if (!seat._screen) {
                     continue;
                 }
                 const dx = x - seat._screen.x;
                 const dy = y - seat._screen.y;
-                if (Math.sqrt(dx * dx + dy * dy) <= 10) {
+                if (Math.sqrt(dx * dx + dy * dy) <= hitRadius) {
                     return seat;
                 }
             }
@@ -758,6 +799,7 @@
 
         assignSeat(cartPositionId, seatGuid) {
             this.pending = true;
+            this._preserveViewport = true;
             this.setStatus(window.gettext ? window.gettext('Saving seat selection…') : 'Saving seat selection…', 'info');
             fetch(this.assignUrl, {
                 method: 'POST',
