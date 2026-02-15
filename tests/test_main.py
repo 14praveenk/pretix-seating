@@ -1,5 +1,6 @@
 import json
 import pytest
+from importlib import resources
 from datetime import timedelta
 from decimal import Decimal
 from django.contrib.auth.models import AnonymousUser
@@ -22,6 +23,13 @@ from quse_seatingplan.views import (
     SeatingPlanDataView,
     SeatingPlanSettingsView,
 )
+
+
+def test_packaged_settings_template_exists():
+    template = resources.files("quse_seatingplan").joinpath(
+        "templates/quse_seatingplan/settings.html"
+    )
+    assert template.is_file()
 
 
 def test_build_seatingframe_url_includes_optional_kwargs(monkeypatch):
