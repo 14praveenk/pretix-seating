@@ -140,6 +140,8 @@ class SeatingPlanDataView(EventViewMixin, CartMixin, View):
                     "product_id": seat.product_id,
                     "label": str(seat),
                     "color": product_colors.get(seat.product_id),
+                    "row_name": seat.row_name or "",
+                    "row_label": seat.row_label or "",
                 }
             )
         tickets = [

@@ -235,8 +235,24 @@
             const targetWidth = this.canvas.clientWidth || this.canvas.width || 800;
             const drawableWidth = Math.max(targetWidth - padding * 2, 1);
             const baseScale = Math.min(drawableWidth / width, drawableWidth / height);
-            const scale = baseScale * this.viewport.scale;
+            let scale = baseScale * this.viewport.scale;
             const canvasHeight = height * baseScale + padding * 2;
+
+            // On narrow screens, auto-zoom so seats aren't squashed together
+            if (this._needsAutoZoom) {
+                this._needsAutoZoom = false;
+                const comfortableWidth = 700;
+                if (targetWidth < comfortableWidth) {
+                    const autoScale = Math.min(comfortableWidth / targetWidth, this.viewport.maxScale);
+                    this.viewport.scale = autoScale;
+                    scale = baseScale * autoScale;
+                    // Center the viewport on the plan
+                    this.viewport.offset = {
+                        x: targetWidth / 2 - padding - (width * scale) / 2,
+                        y: canvasHeight / 2 - padding - (height * scale) / 2,
+                    };
+                }
+            }
 
             // HiDPI: size canvas buffer at native resolution for crisp rendering
             this.canvas.width = targetWidth * dpr;
@@ -254,12 +270,30 @@
             const offset = this.viewport.offset || { x: 0, y: 0 };
             this.shapes.forEach((shape) => this._drawShape(shape, bounds, scale, padding, offset));
 
-            // Scale seat radius with zoom for visual clarity
-            const seatRadius = Math.max(5, 8 * Math.pow(this.viewport.scale, 0.35));
-            const strokeBase = Math.max(1, 1.4 * Math.pow(this.viewport.scale, 0.25));
+            // Scale seat radius with zoom – shrink aggressively on narrow/mobile screens at low zoom
+            const isMobile = targetWidth < 700;
+            const baseRadius = isMobile ? Math.min(4, 1.8 * this.viewport.scale) : Math.min(8, 4 * this.viewport.scale);
+            const seatRadius = Math.max(isMobile ? 1 : 3, baseRadius * Math.pow(this.viewport.scale, 0.2));
+            const strokeBase = Math.max(0.4, 1.4 * Math.pow(this.viewport.scale, 0.25));
+
+            // Compute screen-space center of the layout so we can slightly expand positions
+            const worldCenterX = (bounds && bounds.min_x != null && bounds.max_x != null) ? (bounds.min_x + bounds.max_x) / 2 : 0;
+            const worldCenterY = (bounds && bounds.min_y != null && bounds.max_y != null) ? (bounds.min_y + bounds.max_y) / 2 : 0;
+            const centerScreen = this._projectPoint(worldCenterX, worldCenterY, bounds, scale, padding, offset);
+
+            // Spacing factor: only expand when zoomed out (scale < 1).
+            // Increased multiplier to push seats further apart at low zoom without moving shapes/titles.
+            const spacing = 1 + Math.max(0, 0.6 * (1 - Math.min(this.viewport.scale, 1)));
 
             this.seats.forEach((seat) => {
                 const coords = this._seatCoords(seat, bounds, scale, padding, offset);
+
+                // Apply a subtle spacing expansion relative to the layout center when zoomed out
+                const dx = coords.x - centerScreen.x;
+                const dy = coords.y - centerScreen.y;
+                coords.x = centerScreen.x + dx * spacing;
+                coords.y = centerScreen.y + dy * spacing;
+
                 seat._screen = coords;
                 seat._screenRadius = seatRadius;
 
@@ -278,22 +312,31 @@
                 this.ctx.stroke();
             });
 
-            // Show seat labels when zoomed in enough
-            if (this.viewport.scale >= 2.5) {
-                const labelSize = Math.max(7, seatRadius * 0.75);
+            // Draw small row labels at the leftmost seat of each row
+            const rowMap = new Map();
+            this.seats.forEach((seat) => {
+                const rowKey = seat.row_label || seat.row_name;
+                if (!rowKey || !seat._screen) return;
+                if (!rowMap.has(rowKey) || seat._screen.x < rowMap.get(rowKey).x) {
+                    rowMap.set(rowKey, { x: seat._screen.x, y: seat._screen.y });
+                }
+            });
+            if (rowMap.size) {
+                const labelSize = Math.max(6, seatRadius * 1.1);
                 this.ctx.save();
-                this.ctx.font = '600 ' + labelSize.toFixed(1) + 'px "Helvetica Neue", Helvetica, Arial, sans-serif';
-                this.ctx.textAlign = 'center';
+                this.ctx.font = '500 ' + labelSize.toFixed(1) + 'px "Helvetica Neue", Helvetica, Arial, sans-serif';
+                this.ctx.textAlign = 'right';
                 this.ctx.textBaseline = 'middle';
-                this.seats.forEach((seat) => {
-                    if (!seat._screen || !seat.label) return;
-                    if (seat._screen.x < -20 || seat._screen.x > targetWidth + 20 ||
-                        seat._screen.y < -20 || seat._screen.y > canvasHeight + 20) return;
-                    this.ctx.fillStyle = (seat.status === 'mine' || seat.status === 'taken' || seat.status === 'blocked') ? '#fff' : '#0a1c3a';
-                    this.ctx.fillText(seat.label, seat._screen.x, seat._screen.y);
+                this.ctx.fillStyle = '#51647c';
+                const gap = seatRadius + Math.max(4, seatRadius * 0.8);
+                rowMap.forEach((pos, label) => {
+                    if (pos.x - gap < -30 || pos.x > targetWidth + 30 ||
+                        pos.y < -20 || pos.y > canvasHeight + 20) return;
+                    this.ctx.fillText(label, pos.x - gap, pos.y);
                 });
                 this.ctx.restore();
             }
+
         }
 
         _seatCoords(seat, bounds, scale, padding, offset) {
@@ -514,6 +557,7 @@
         _resetViewport() {
             this.viewport.scale = 1;
             this.viewport.offset = { x: 0, y: 0 };
+            this._needsAutoZoom = true;
             this.pinchStartDistance = null;
             this.pinchStartScale = 1;
             this.lastPanPoint = null;
